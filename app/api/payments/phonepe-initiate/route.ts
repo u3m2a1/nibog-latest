@@ -3,11 +3,23 @@ import { PHONEPE_API, PHONEPE_CONFIG } from '@/config/phonepe';
 
 export async function POST(request: Request) {
   try {
+    console.log("=== SERVER API ROUTE: PHONEPE PAYMENT INITIATION ===");
     console.log("Server API route: Starting PhonePe payment initiation request");
     console.log(`PhonePe Environment: ${PHONEPE_CONFIG.ENVIRONMENT}`);
     console.log(`PhonePe Merchant ID: ${PHONEPE_CONFIG.MERCHANT_ID}`);
     console.log(`PhonePe Test Mode: ${PHONEPE_CONFIG.IS_TEST_MODE}`);
     console.log(`PhonePe Salt Key: ${PHONEPE_CONFIG.SALT_KEY ? 'Set' : 'Missing'}`);
+    console.log(`PhonePe Salt Index: ${PHONEPE_CONFIG.SALT_INDEX}`);
+    console.log(`PhonePe App URL: ${PHONEPE_CONFIG.APP_URL}`);
+
+    // Environment debugging
+    console.log('Environment Variables Debug:', {
+      NODE_ENV: process.env.NODE_ENV,
+      PHONEPE_ENVIRONMENT: process.env.PHONEPE_ENVIRONMENT,
+      NEXT_PUBLIC_PHONEPE_ENVIRONMENT: process.env.NEXT_PUBLIC_PHONEPE_ENVIRONMENT,
+      VERCEL_ENV: process.env.VERCEL_ENV,
+      VERCEL_URL: process.env.VERCEL_URL
+    });
 
     // Parse the request body
     const requestBody = await request.json();
@@ -17,6 +29,31 @@ export async function POST(request: Request) {
     console.log(`Server API route: Received transaction ID: ${transactionId}, booking ID: ${bookingId}`);
     console.log(`Server API route: Base64 payload length: ${base64Payload?.length || 0}`);
     console.log(`Server API route: X-Verify: ${xVerify}`);
+
+    // Validate PhonePe configuration first
+    if (!PHONEPE_CONFIG.MERCHANT_ID) {
+      console.error("Server API route: MERCHANT_ID is missing from configuration");
+      return NextResponse.json(
+        { success: false, error: "PhonePe configuration error: MERCHANT_ID is missing" },
+        { status: 500 }
+      );
+    }
+
+    if (!PHONEPE_CONFIG.SALT_KEY) {
+      console.error("Server API route: SALT_KEY is missing from configuration");
+      return NextResponse.json(
+        { success: false, error: "PhonePe configuration error: SALT_KEY is missing" },
+        { status: 500 }
+      );
+    }
+
+    if (!PHONEPE_CONFIG.SALT_INDEX) {
+      console.error("Server API route: SALT_INDEX is missing from configuration");
+      return NextResponse.json(
+        { success: false, error: "PhonePe configuration error: SALT_INDEX is missing" },
+        { status: 500 }
+      );
+    }
 
     // Validate required fields
     if (!base64Payload) {

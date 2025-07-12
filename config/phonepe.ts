@@ -21,18 +21,19 @@ const getEnvVar = (key: string, defaultValue: string = ''): string => {
   if (typeof process !== 'undefined' && process.env) {
     // In Next.js, environment variables are available via process.env
     // This works for both .env and .env.local files
-    return process.env[key] || defaultValue;
+    const value = process.env[key];
+    if (value) return value;
   }
 
-  // For client-side code
+  // For client-side code or when server-side env var is not available
   // Next.js automatically exposes environment variables prefixed with NEXT_PUBLIC_
-  // If you need client-side access, prefix your env vars with NEXT_PUBLIC_
-  if (typeof window !== 'undefined') {
-    // For environment variables exposed to the client
-    if (process.env[`NEXT_PUBLIC_${key}`]) {
-      return process.env[`NEXT_PUBLIC_${key}`] || defaultValue;
-    }
+  if (typeof process !== 'undefined' && process.env) {
+    const publicValue = process.env[`NEXT_PUBLIC_${key}`];
+    if (publicValue) return publicValue;
+  }
 
+  // Client-side fallback
+  if (typeof window !== 'undefined') {
     // Fallback for any custom __ENV object that might be defined
     if ((window as any).__ENV && (window as any).__ENV[key]) {
       return (window as any).__ENV[key] || defaultValue;
@@ -59,7 +60,7 @@ export const getAppUrl = (): string => {
       return `${protocol}//${hostname}`;
     }
     // Server-side fallback - use production URL for consistency
-    return 'https://nibog-ten.vercel.app';
+    return 'https://nibog-latest.vercel.app';
   }
 
   // For deployment/production, try to get the current hostname
@@ -69,8 +70,8 @@ export const getAppUrl = (): string => {
     return `${protocol}//${hostname}`;
   }
 
-  // Final fallback for server-side
-  return process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://nibog-ten.vercel.app';
+  // Final fallback for server-side - use the correct production URL
+  return process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'https://nibog-latest.vercel.app';
 };
 
 // Determine if we're in production mode
@@ -78,24 +79,27 @@ const phonepeEnv = getEnvVar('PHONEPE_ENVIRONMENT', 'sandbox'); // Default to sa
 console.log('PhonePe Environment Variable:', phonepeEnv);
 console.log('All Environment Variables:', {
   PHONEPE_ENVIRONMENT: process.env.PHONEPE_ENVIRONMENT,
+  NEXT_PUBLIC_PHONEPE_ENVIRONMENT: process.env.NEXT_PUBLIC_PHONEPE_ENVIRONMENT,
   NODE_ENV: process.env.NODE_ENV,
-  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL
+  NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
+  VERCEL_ENV: process.env.VERCEL_ENV
 });
 console.log('Resolved APP_URL:', getAppUrl());
 const isProduction = phonepeEnv === 'production';
 
 // PhonePe merchant configuration from environment variables
+// For production, prioritize NEXT_PUBLIC_ variables since they're accessible everywhere
 export const PHONEPE_CONFIG = {
   MERCHANT_ID: isProduction
-    ? getEnvVar('PHONEPE_PROD_MERCHANT_ID', 'M11BWXEAW0AJ')
+    ? (getEnvVar('PHONEPE_PROD_MERCHANT_ID', '') || getEnvVar('NEXT_PUBLIC_MERCHANT_ID', 'M11BWXEAW0AJ'))
     : (getEnvVar('NEXT_PUBLIC_MERCHANT_ID', '') || getEnvVar('PHONEPE_TEST_MERCHANT_ID', 'PGTESTPAYUAT86')),
 
   SALT_KEY: isProduction
-    ? getEnvVar('PHONEPE_PROD_SALT_KEY', '63542457-2eb4-4ed4-83f2-da9eaed9fcca')
+    ? (getEnvVar('PHONEPE_PROD_SALT_KEY', '') || getEnvVar('NEXT_PUBLIC_SALT_KEY', '63542457-2eb4-4ed4-83f2-da9eaed9fcca'))
     : (getEnvVar('NEXT_PUBLIC_SALT_KEY', '') || getEnvVar('PHONEPE_TEST_SALT_KEY', '96434309-7796-489d-8924-ab56988a6076')),
 
   SALT_INDEX: isProduction
-    ? getEnvVar('PHONEPE_PROD_SALT_INDEX', '2')
+    ? (getEnvVar('PHONEPE_PROD_SALT_INDEX', '') || getEnvVar('NEXT_PUBLIC_SALT_INDEX', '2'))
     : (getEnvVar('NEXT_PUBLIC_SALT_INDEX', '') || getEnvVar('PHONEPE_TEST_SALT_INDEX', '1')),
 
   IS_TEST_MODE: !isProduction,

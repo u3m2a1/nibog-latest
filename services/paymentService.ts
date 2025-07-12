@@ -118,6 +118,11 @@ export async function initiatePhonePePayment(
 ): Promise<string> {
   try {
     // Log and validate PhonePe configuration
+    console.log('=== PAYMENT INITIATION DEBUG ===');
+    console.log('Environment:', process.env.NODE_ENV);
+    console.log('PhonePe Environment:', process.env.PHONEPE_ENVIRONMENT);
+    console.log('NEXT_PUBLIC_PHONEPE_ENVIRONMENT:', process.env.NEXT_PUBLIC_PHONEPE_ENVIRONMENT);
+
     logPhonePeConfig();
 
     const validation = validatePhonePeConfig();
@@ -125,6 +130,8 @@ export async function initiatePhonePePayment(
       console.error('PhonePe Configuration Validation Failed:', validation.errors);
       throw new Error(`PhonePe configuration is invalid: ${validation.errors.join(', ')}`);
     }
+
+    console.log('✅ PhonePe configuration validation passed');
 
     console.log(`Initiating PhonePe payment for booking ID: ${bookingId}`);
     console.log(`Amount in rupees: ₹${amount}`);
