@@ -9,9 +9,10 @@ export const PHONEPE_API = {
     REFUND: 'https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/refund',
   },
   PROD: {
-    INITIATE: 'https://api.phonepe.com/apis/hermes/pg/v1/pay',
-    STATUS: 'https://api.phonepe.com/apis/hermes/pg/v1/status',
-    REFUND: 'https://api.phonepe.com/apis/hermes/pg/v1/refund',
+    // Correct production endpoints for PhonePe v1 API
+    INITIATE: 'https://api.phonepe.com/apis/pg/v1/pay',
+    STATUS: 'https://api.phonepe.com/apis/pg/v1/status',
+    REFUND: 'https://api.phonepe.com/apis/pg/v1/refund',
   }
 };
 
