@@ -133,6 +133,32 @@ export async function initiatePhonePePayment(
 
     console.log('✅ PhonePe configuration validation passed');
 
+    // Validate input parameters
+    console.log("=== INPUT VALIDATION ===")
+    console.log("Booking ID:", bookingId, typeof bookingId)
+    console.log("User ID:", userId, typeof userId)
+    console.log("Amount (₹):", amount, typeof amount)
+    console.log("Mobile Number:", mobileNumber, typeof mobileNumber)
+
+    if (!bookingId) {
+      console.error('❌ Booking ID is missing');
+      throw new Error('Booking ID is required');
+    }
+    if (!userId) {
+      console.error('❌ User ID is missing');
+      throw new Error('User ID is required');
+    }
+    if (!amount || amount <= 0) {
+      console.error('❌ Invalid amount:', amount);
+      throw new Error('Valid amount is required');
+    }
+    if (!mobileNumber) {
+      console.error('❌ Mobile number is missing');
+      throw new Error('Mobile number is required');
+    }
+
+    console.log('✅ Input validation passed');
+
     console.log(`Initiating PhonePe payment for booking ID: ${bookingId}`);
     console.log(`Amount in rupees: ₹${amount}`);
     console.log(`Original amount in paise (before rounding): ${amount * 100}`);
@@ -191,6 +217,17 @@ export async function initiatePhonePePayment(
       throw new Error('Payment service should only be called from client-side');
     }
 
+    console.log('=== MAKING API CALL ===');
+    console.log('API URL: /api/payments/phonepe-initiate');
+    console.log('Request payload keys:', Object.keys({
+      request: base64Payload,
+      xVerify: xVerify,
+      transactionId: merchantTransactionId,
+      bookingId: bookingId,
+    }));
+    console.log('Base64 payload length:', base64Payload.length);
+    console.log('X-Verify length:', xVerify.length);
+
     const response = await fetch('/api/payments/phonepe-initiate', {
       method: 'POST',
       headers: {
@@ -204,10 +241,14 @@ export async function initiatePhonePePayment(
       }),
     });
 
+    console.log('API Response status:', response.status);
+    console.log('API Response headers:', Object.fromEntries(response.headers.entries()));
+
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`Error response: ${errorText}`);
-      console.error(`Response status: ${response.status}`);
+      console.error(`❌ API Error response: ${errorText}`);
+      console.error(`❌ Response status: ${response.status}`);
+      console.error(`❌ Response headers:`, Object.fromEntries(response.headers.entries()));
       throw new Error(`Failed to initiate PhonePe payment. API returned status: ${response.status}. Error: ${errorText}`);
     }
 
