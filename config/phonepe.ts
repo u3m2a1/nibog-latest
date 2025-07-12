@@ -1,4 +1,4 @@
-// PhonePe configuration file
+﻿// PhonePe configuration file
 // This centralizes all PhonePe-related configuration
 
 // PhonePe API endpoints
@@ -9,10 +9,10 @@ export const PHONEPE_API = {
     REFUND: 'https://api-preprod.phonepe.com/apis/pg-sandbox/pg/v1/refund',
   },
   PROD: {
-    // Correct production endpoints for PhonePe v1 API
-    INITIATE: 'https://api.phonepe.com/apis/pg/v1/pay',
-    STATUS: 'https://api.phonepe.com/apis/pg/v1/status',
-    REFUND: 'https://api.phonepe.com/apis/pg/v1/refund',
+    // Correct production endpoints for PhonePe Hermes API
+    INITIATE: 'https://api.phonepe.com/apis/hermes/pg/v1/pay',
+    STATUS: 'https://api.phonepe.com/apis/hermes/pg/v1/status',
+    REFUND: 'https://api.phonepe.com/apis/hermes/pg/v1/refund',
   }
 };
 
@@ -46,13 +46,7 @@ const getEnvVar = (key: string, defaultValue: string = ''): string => {
 
 // Get the correct APP_URL based on environment
 export const getAppUrl = (): string => {
-  // First try to get from environment variable
-  const envUrl = getEnvVar('NEXT_PUBLIC_APP_URL', '');
-  if (envUrl) {
-    return envUrl;
-  }
-
-  // For development, try to detect the current port
+  // For development, use localhost for callbacks to work properly
   if (process.env.NODE_ENV === 'development') {
     // Check if we're on the client side and can get the current port
     if (typeof window !== 'undefined') {
@@ -60,8 +54,14 @@ export const getAppUrl = (): string => {
       const hostname = window.location.host; // includes domain and port if any
       return `${protocol}//${hostname}`;
     }
-    // Server-side fallback - use production URL for consistency
-    return 'https://nibog-latest.vercel.app';
+    // Server-side fallback for development - use localhost
+    return 'http://localhost:3000';
+  }
+
+  // For production, first try to get from environment variable
+  const envUrl = getEnvVar('NEXT_PUBLIC_APP_URL', '');
+  if (envUrl) {
+    return envUrl;
   }
 
   // For deployment/production, try to get the current hostname
@@ -76,7 +76,8 @@ export const getAppUrl = (): string => {
 };
 
 // Determine if we're in production mode
-const phonepeEnv = getEnvVar('PHONEPE_ENVIRONMENT', 'sandbox'); // Default to sandbox for safety
+// Check both server-side and client-side environment variables
+const phonepeEnv = process.env.PHONEPE_ENVIRONMENT || process.env.NEXT_PUBLIC_PHONEPE_ENVIRONMENT || 'sandbox';
 console.log('PhonePe Environment Variable:', phonepeEnv);
 console.log('All Environment Variables:', {
   PHONEPE_ENVIRONMENT: process.env.PHONEPE_ENVIRONMENT,
@@ -92,16 +93,16 @@ const isProduction = phonepeEnv === 'production';
 // For production, prioritize NEXT_PUBLIC_ variables since they're accessible everywhere
 export const PHONEPE_CONFIG = {
   MERCHANT_ID: isProduction
-    ? (getEnvVar('PHONEPE_PROD_MERCHANT_ID', '') || getEnvVar('NEXT_PUBLIC_MERCHANT_ID', 'M11BWXEAW0AJ'))
-    : (getEnvVar('NEXT_PUBLIC_MERCHANT_ID', '') || getEnvVar('PHONEPE_TEST_MERCHANT_ID', 'PGTESTPAYUAT86')),
+    ? (process.env.PHONEPE_PROD_MERCHANT_ID || process.env.NEXT_PUBLIC_MERCHANT_ID || 'M11BWXEAW0AJ')
+    : (process.env.NEXT_PUBLIC_MERCHANT_ID || process.env.PHONEPE_TEST_MERCHANT_ID || 'PGTESTPAYUAT86'),
 
   SALT_KEY: isProduction
-    ? (getEnvVar('PHONEPE_PROD_SALT_KEY', '') || getEnvVar('NEXT_PUBLIC_SALT_KEY', '63542457-2eb4-4ed4-83f2-da9eaed9fcca'))
-    : (getEnvVar('NEXT_PUBLIC_SALT_KEY', '') || getEnvVar('PHONEPE_TEST_SALT_KEY', '96434309-7796-489d-8924-ab56988a6076')),
+    ? (process.env.PHONEPE_PROD_SALT_KEY || process.env.NEXT_PUBLIC_SALT_KEY || '63542457-2eb4-4ed4-83f2-da9eaed9fcca')
+    : (process.env.NEXT_PUBLIC_SALT_KEY || process.env.PHONEPE_TEST_SALT_KEY || '96434309-7796-489d-8924-ab56988a6076'),
 
   SALT_INDEX: isProduction
-    ? (getEnvVar('PHONEPE_PROD_SALT_INDEX', '') || getEnvVar('NEXT_PUBLIC_SALT_INDEX', '2'))
-    : (getEnvVar('NEXT_PUBLIC_SALT_INDEX', '') || getEnvVar('PHONEPE_TEST_SALT_INDEX', '1')),
+    ? (process.env.PHONEPE_PROD_SALT_INDEX || process.env.NEXT_PUBLIC_SALT_INDEX || '2')
+    : (process.env.NEXT_PUBLIC_SALT_INDEX || process.env.PHONEPE_TEST_SALT_INDEX || '1'),
 
   IS_TEST_MODE: !isProduction,
   ENVIRONMENT: isProduction ? 'production' : 'sandbox',
@@ -132,12 +133,12 @@ export function generateTransactionId(bookingId: string | number): string {
   const timestamp = new Date().getTime();
   const prefix = 'NIBOG_';
   const fullId = `${prefix}${bookingId}_${timestamp}`;
-  
+
   // Check if the ID exceeds 38 characters and truncate if necessary
   if (fullId.length <= 38) {
     return fullId;
   }
-  
+
   // If too long, use a shortened version
   // Keep the prefix, use last 6 chars of bookingId, and use full timestamp
   const shortBookingId = String(bookingId).slice(-6);
